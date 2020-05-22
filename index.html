@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title></title>
+	<script type="text/javascript" src="three.min.js"></script>
+
+	<style>
+		body {
+			margin: 0; padding: 0;
+			font-family: sans-serif;
+		}
+		.view {
+			display: grid;
+			grid-template-columns: 7fr 1fr;
+			height: 100vh;
+		}
+		.list {grid-area: 1 / 2 / 2 / 3};
+		#container {grid-area: 1 / 1 / 2 / 2;}
+
+	</style>
+</head>
+
+<body>
+
+	<article class="view">
+		<section class="list">
+			<header>
+				<h1>All the shaders</h1>
+			</header>
+
+			<ul>
+				<li><a href="?file=01base">01: Base</a></li>
+				<li><a href="?file=02equations">Equations</a></li>
+				<li><a href="?file=03equations">More Equations</a></li>
+				<li><h3>Colours</h3></li>
+				<li><a href="?file=04hurt">Hurt</a></li>
+				<li><a href="?file=05sunset">Sunset</a></li>
+				<li><a href="?file=06hsb">HSB</a></li>
+				<li><a href="?file=07gradients">Gradients</a></li>
+				<li><a href="?file=08flag">Flag</a></li>
+				<li><a href="?file=09expandHue">Expand Hue</a></li>
+				<li><a href="?file=10mouse">Mouse</a></li>
+				<li><a href="?file=11rainbow">Rainbow</a></li>
+				<li><a href="?file=12spinning">Spinning</a></li>
+				<li><h4>Shapes (07)</h4></li>
+				<li><a href="?file=13shape_rectangleFunc">Rectangle</a></li>
+				<li><a href="?file=14screenOutline">Screen Outline</a></li>
+				<li><a href="?file=15shape_smoothFloor">Smooth Floor</a></li>
+				<li><a href="?file=16shape_circleFunc">Circle Function</a></li>
+				<li><a href="?file=17shape_circleFuncTwo">Circle Function Two</a></li>
+				<li><a href="?file=18shape_zen">Zen</a></li>
+				<li><a href="?file=19shape_flower">Flower</a></li>
+				<li><a href="?file=20polarshape">Polar Shape</a></li>
+				<li><h3>Transforms</h3></li>
+				<li><a href="?file=21translate">Translate</a></li>
+				<li><a href="?file=22rotate">Rotate</a></li>
+				<li><a href="?file=23scale">Scale</a></li>
+				<li><a href="?file=24patterns">Patterns</a></li>
+				<li><a href="?file=raymarch">Raymarch</a></li>
+			</ul>
+		</section>
+
+		<div id="container"></div>
+	</article>
+
+
+
+	<!-- for the moment were just doing stuff with the fragment shader, so I can ignore this -->
+	<script id="vertexShader" type="x-shader/x-vertex">
+
+		void main() {
+				gl_Position = vec4( position, 1.0 );
+		}
+
+	</script>
+
+	<script type="text/javascript">
+
+		// three.js setup
+
+		var container;
+		var camera, scene, renderer, fshader, loader;
+		var uniforms;
+
+		// get querystring param or default
+		var urlParams = new URLSearchParams(window.location.search);
+		var fshaderFile = urlParams.has('file') ? urlParams.get('file') : 'base';
+		console.log(fshaderFile);
+
+		var selectList = document.querySelector('.list ul');
+
+		init();
+
+		function init() {
+			container = document.getElementById('container');
+
+			camera = new THREE.Camera();
+			camera.position.z = 1;
+
+			scene = new THREE.Scene();
+			loader = new THREE.FileLoader();
+
+			getShader(fshaderFile);
+
+		}
+
+		function getShader(filename) {
+
+			let file = `${filename}.glsl`;
+
+			let numFilesLeft = 1;
+
+			loader.load(file, (data) => {
+				fshader = data;
+
+				--numFilesLeft;
+				if (numFilesLeft === 0) {
+					more();
+				}
+			});
+		}
+
+		function more() {
+
+			uniforms = {
+				u_time: { type: "f", value: 1.0 },
+				u_resolution: { type: "v2", value: new THREE.Vector2() },
+				u_mouse: { type: "v2", value: new THREE.Vector2() }
+			};
+			document.onmousemove = function (e) {
+				uniforms.u_mouse.value.x = e.pageX
+				uniforms.u_mouse.value.y = e.pageY
+			}
+
+			var material = new THREE.ShaderMaterial({
+				uniforms: uniforms,
+				vertexShader: document.getElementById('vertexShader').textContent,
+				fragmentShader: fshader
+			});
+
+			var geometry = new THREE.PlaneBufferGeometry(2, 2);
+
+			var mesh = new THREE.Mesh(geometry, material);
+			scene.add(mesh);
+
+			renderer = new THREE.WebGLRenderer();
+			renderer.setPixelRatio(window.devicePixelRatio);
+
+			container.appendChild(renderer.domElement);
+
+			onWindowResize();
+			window.addEventListener('resize', onWindowResize, false);
+
+			animate();
+		}
+
+		function onWindowResize(event) {
+			let width = container.getBoundingClientRect().width;
+			let height = container.getBoundingClientRect().height;
+			renderer.setSize(width, height);
+
+			uniforms.u_resolution.value.x = renderer.domElement.width;
+			uniforms.u_resolution.value.y = renderer.domElement.height;
+		}
+
+		function animate() {
+			requestAnimationFrame(animate);
+			render();
+		}
+
+		function render() {
+			uniforms.u_time.value += 0.05;
+			renderer.render(scene, camera);
+		}
+	</script>
+
+</body>
+
+</html>
