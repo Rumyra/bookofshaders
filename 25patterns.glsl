@@ -61,6 +61,45 @@ precision mediump float;
 		box(_st,vec2(_size/4.,_size));
 	}
 
+	float rect(vec2 _st, vec2 s){
+		_st = _st*2.-1.;
+		return max(abs(_st.x/s.x),
+		abs(_st.y/s.y));
+	}
+
+	float cross2(vec2 _st, float s) {
+		vec2 size = vec2(.25,s);
+		return min(rect(_st,size.xy),
+		rect(_st,size.yx));
+	}
+
+	float circle(vec2 _st){
+		return (length(_st-0.5)/0.5);
+	}
+
+
+
+
+
+	// params: st.x or st.y, position, width
+	// you can make a bar wavy by adding cos/sin to pos
+	// you can make xOrY, both or mod it for interesting results
+	// for instance st.x+st.y && st.x-st.y will give you a cross
+	// using a shape function like circle in xOrY will give you a stroked circle
+	float stroke(float xOrY, float pos, float w) {
+		float d = step(pos, xOrY+w * .5) - step(pos, xOrY - w*.5);
+		return clamp(d,0.,1.);
+	}
+	// use like color+=fill(circleSDF(st),.65);
+	float fill(float x,float size){
+		return 1.-step(size,x);
+	}
+	// use both of the above to get lined effect
+	// float sdf=rectSDF(st,vec2(1.));
+	// color+=stroke(sdf,.5,.125);
+	// color+=fill(sdf,.1);
+
+
 	// transform functions ==================
 	// args: st, two floats of x & y
 	vec2 scale(vec2 _st, vec2 _scale){
@@ -105,7 +144,7 @@ precision mediump float;
 	// I want to know what the aspect ratio is, how many y's to make if I specify x count
 	// if y is 0.8 of x, then I'll need 0.8 x xcount
 	float aspectRatio = u_resolution.y/u_resolution.x;
-	float x_count = 10.0;
+	float x_count = 5.0;
 	float y_count = x_count*aspectRatio;
 
 	void main() {
@@ -117,27 +156,38 @@ precision mediump float;
 		st = tile(st, vec2(x_count, y_count));
 
 		// add any transforms & draw
-		st = translate(st, vec2(0.5, -0.5));
-		float cr=cross(st,.5);
+		// st = translate(st, vec2(0.5, -0.5));
+		// float cr=cross(st,.5);
 
-		st=translate(st,vec2(-0.5,0.5));
+		// st=translate(st,vec2(-0.5,0.5));
 
+		st=(st-.5)*1.2+.5;
 
 		// draw vec2 st,int noSides,int angleOffset,float scale
 		float dd = polarShape(st,5,20,1.5);
-		float box = box(st,vec2(.4,.5));
+		float bo = box(st,vec2(.4,.5));
+		float circ = circle(st);
 
 		// TODO I think polar shape is based on -1 -> 1
 		// add colour
 		vec3 colour = vec3(0.0);
-		colour += mix(
-			colour,
-			hsb2rgb(vec3(.5,.8,.8)),
-			smoothstep(.4,.41,cr));
-		colour += mix(
-			hsb2rgb(vec3(0.7, 0.5, 0.6)),
-			colour,
-			smoothstep(.4,.41,dd));
+		// colour += mix(
+		// 	colour,
+		// 	hsb2rgb(vec3(.5,.8,.8)),
+		// 	smoothstep(.4,.41,circ));
+		// colour += mix(
+		// 	hsb2rgb(vec3(0.7, 0.5, 0.6)),
+		// 	colour,
+		// 	smoothstep(.4,.41,dd));
+
+		float rec = rect(st,vec2(1.));
+		colour+=fill(rec,.6);
+		float cro = cross2(st,0.8);
+		colour*=step(.8,fract(cro*2.));
+		colour*=step(1.,cro);
+		colour+=fill(cro,.5);
+		colour+=stroke(rec,.65,.055);
+		colour+=stroke(rec,.75,.02);
 
     gl_FragColor = vec4(colour, 1.0);
 
